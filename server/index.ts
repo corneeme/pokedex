@@ -1,4 +1,19 @@
+import * as nodeCrypto from "crypto";
 import express, { type Request, Response, NextFunction } from "express";
+
+// Polyfill `globalThis.crypto.getRandomValues` in Node environments when
+// a dependency expects the Web Crypto API. Some libraries call
+// `crypto.getRandomValues` (browser API). Node's `crypto` exposes
+// `webcrypto` on newer versions; otherwise fall back to `randomFillSync`.
+if (!(globalThis as any).crypto) {
+  if ((nodeCrypto as any).webcrypto) {
+    (globalThis as any).crypto = (nodeCrypto as any).webcrypto;
+  } else if ((nodeCrypto as any).randomFillSync) {
+    (globalThis as any).crypto = {
+      getRandomValues: (buf: Uint8Array) => nodeCrypto.randomFillSync(buf),
+    } as unknown as Crypto;
+  }
+}
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
